@@ -3,7 +3,7 @@
  */
 
 // Базовый URL для API запр��сов
-export const API_BASE_URL = "https://api.standoff.uz"
+export const API_BASE_URL = "http://127.0.1:8000"
 
 // URL для API-эндпоинтов
 export const API_ENDPOINTS = {
@@ -27,7 +27,7 @@ export const API_ENDPOINTS = {
 export const IMAGE_BASE_URL = API_BASE_URL
 
 // Placeholder для изображений
-export const DEFAULT_ITEM_IMAGE = "https://bulldrop.best/templates/res/images/items/15_1.png"
+export const DEFAULT_ITEM_IMAGE = ""
 
 // Ключ для хранения токена в localStorage
 export const AUTH_TOKEN_KEY = "admin_auth_token"

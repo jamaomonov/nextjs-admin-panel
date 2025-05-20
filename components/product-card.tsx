@@ -99,8 +99,9 @@ export default function ItemCard({ item, onEdit, onDelete }: ItemCardProps) {
 
   // Формируем полный URL для изображения
   const getImageUrl = (photoPath: string) => {
-    if (!photoPath) return DEFAULT_ITEM_IMAGE
+    if (!photoPath) return "placeholder.svg"
     if (photoPath.startsWith("http")) return photoPath
+    if (!photoPath.startsWith("/")) return `${IMAGE_BASE_URL}/${photoPath}`
     return `${IMAGE_BASE_URL}${photoPath}`
   }
 

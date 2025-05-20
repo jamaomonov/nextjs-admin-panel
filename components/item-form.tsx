@@ -12,6 +12,7 @@ import { Loader2, AlertCircle } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import ImageUpload from "@/components/image-upload"
 import { useRouter } from "next/navigation"
+import { API_ENDPOINTS } from "@/lib/config"
 
 interface ItemFormProps {
   initialData?: {
@@ -111,7 +112,7 @@ export default function ItemForm({ initialData, onSuccess, onCancel }: ItemFormP
 
     try {
       // Validate required fields before sending
-      const requiredFields = ["name", "photo", "type_id", "rarity_id", "category_id", "collection_id", "weapon_id"]
+      const requiredFields = ["name", "type_id", "rarity_id", "collection_id",]
       const missingFields = requiredFields.filter((field) => !formData[field])
 
       if (missingFields.length > 0) {
@@ -120,15 +121,22 @@ export default function ItemForm({ initialData, onSuccess, onCancel }: ItemFormP
 
       // Ensure all ID fields are numbers, not empty strings
       const processedData = {
-        ...formData,
-        type_id: formData.type_id ? Number(formData.type_id) : null,
-        rarity_id: formData.rarity_id ? Number(formData.rarity_id) : null,
+        name: formData.name,
+        photo: formData.photo || null,
+        type_id: Number(formData.type_id),
+        rarity_id: Number(formData.rarity_id),
+        collection_id: Number(formData.collection_id),
         category_id: formData.category_id ? Number(formData.category_id) : null,
-        collection_id: formData.collection_id ? Number(formData.collection_id) : null,
         weapon_id: formData.weapon_id ? Number(formData.weapon_id) : null,
       }
 
-      const url = isEditing ? `/api/items/${initialData.id}` : "/api/items"
+      const cleanedData = Object.fromEntries(
+        Object.entries(processedData).filter(
+          ([_, value]) => value !== null && value !== undefined && value !== ""
+        )
+      )
+
+      const url = isEditing ? `${API_ENDPOINTS.items}/${initialData?.id}` : API_ENDPOINTS.items
       const method = isEditing ? "PUT" : "POST"
 
       const response = await fetch(url, {
@@ -136,7 +144,7 @@ export default function ItemForm({ initialData, onSuccess, onCancel }: ItemFormP
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(processedData),
+        body: JSON.stringify(cleanedData),
       })
 
       const responseData = await response.json()

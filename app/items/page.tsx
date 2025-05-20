@@ -154,19 +154,19 @@ export default function ItemsPage() {
       const transformedItems: Item[] = data.map((item) => ({
         id: item.id,
         name: item.name,
-        category: item.category.name,
+        category: item?.category?.name || "",
         photo: item.photo || "",
         rarity: item.rarity.name,
-        weaponName: item.weapon.name,
+        weaponName: item?.weapon?.name || "",
         collectionName: item.collection.name,
         typeName: item.type.name,
         created_at: item.created_at,
         // Добавляем ID для связанных сущностей
         type_id: item.type.id,
         rarity_id: item.rarity.id,
-        category_id: item.category.id,
+        category_id: item?.category?.id,
         collection_id: item.collection.id,
-        weapon_id: item.weapon.id,
+        weapon_id: item?.weapon?.id,
       }))
 
       setItems(transformedItems)
