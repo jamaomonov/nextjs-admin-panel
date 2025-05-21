@@ -20,7 +20,7 @@ export const API_ENDPOINTS = {
   // Эндпоинты аутентификации
   googleLogin: `${API_BASE_URL}/auth/google/login`,
   googleCallback: `${API_BASE_URL}/auth/google/callback`,
-  me: `${API_BASE_URL}/auth/me`,
+  me: `${API_BASE_URL}/auth/google/me`,
 }
 
 // URL для изображений
@@ -39,7 +39,7 @@ export const FRONTEND_URL =
 // Настройки авторизации
 export const AUTH_CONFIG = {
   // Включить/отключить требование авторизации
-  requireAuth: false,
+  requireAuth: true,
 
   // Роли, которым разрешен доступ к админ-панели
   allowedRoles: ["admin", "moderator"],

@@ -45,15 +45,15 @@ export default function ItemCard({ item, onEdit, onDelete }: ItemCardProps) {
       case "common":
         return "bg-gradient-to-b from-gray-300 to-gray-500"
       case "uncommon":
-        return "bg-gradient-to-b from-blue-300 to-blue-500"
+        return "bg-[#378fff]"
       case "rare":
-        return "bg-gradient-to-b from-blue-400 to-blue-600"
+        return "bg-[#0043ff]"
       case "epic":
-        return "bg-gradient-to-b from-purple-400 to-purple-600"
+        return "bg-[#941dff]"
       case "legendary":
-        return "bg-gradient-to-b from-pink-400 to-pink-600"
+        return "bg-[#ff2586]"
       case "arcane":
-        return "bg-gradient-to-b from-red-400 to-red-600"
+        return "bg-[#ff0000]"
       case "nameless":
         return "bg-gradient-to-b from-yellow-500 to-amber-700"
       default:
@@ -79,7 +79,7 @@ export default function ItemCard({ item, onEdit, onDelete }: ItemCardProps) {
       case "legendary":
         return "border-pink-400 bg-pink-300 text-pink-900"
       case "arcane":
-        return "border-red-400 bg-red-300 text-red-900"
+        return "border-red-600 bg-red-500 text-red-950"
       case "nameless":
         return "border-yellow-600 bg-yellow-500 text-yellow-900"
       default:
