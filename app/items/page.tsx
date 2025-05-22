@@ -47,6 +47,7 @@ interface ApiItem {
     name: string
   }
   created_at: string
+  is_market?: boolean
 }
 
 // Интерфейс для нашего компонента ItemCard
@@ -60,6 +61,7 @@ interface Item {
   collectionName?: string
   typeName?: string
   created_at?: string
+  is_market?: boolean
   // Добавляем ID для связанных сущностей для редактирования
   type_id: number
   rarity_id: number
@@ -80,6 +82,8 @@ export default function ItemsPage() {
     total: 0,
     rarityCount: {} as Record<string, number>,
     categoryCount: {} as Record<string, number>,
+    collectionCount: {} as Record<string, number>,
+    marketCount: { market: 0, notMarket: 0 },
   })
   const [searchTerm, setSearchTerm] = useState("")
   const isMobile = useMobile()
@@ -95,6 +99,8 @@ export default function ItemsPage() {
   const [rarityFilter, setRarityFilter] = useState<string>("all")
   const [categoryFilter, setCategoryFilter] = useState<string>("all")
   const [typeFilter, setTypeFilter] = useState<string>("all")
+  const [collectionFilter, setCollectionFilter] = useState<string>("all")
+  const [marketFilter, setMarketFilter] = useState<string>("all")
   const [sortBy, setSortBy] = useState<string>("name")
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc")
 
@@ -102,6 +108,8 @@ export default function ItemsPage() {
   const calculateStats = useCallback((items: Item[]) => {
     const rarityCount: Record<string, number> = {}
     const categoryCount: Record<string, number> = {}
+    const collectionCount: Record<string, number> = {}
+    const marketCount = { market: 0, notMarket: 0 }
 
     items.forEach((item) => {
       // Подсчет по редкости
@@ -119,12 +127,30 @@ export default function ItemsPage() {
       } else {
         categoryCount[item.category] = 1
       }
+
+      // Подсчет по коллекции
+      if (item.collectionName) {
+        if (collectionCount[item.collectionName]) {
+          collectionCount[item.collectionName]++
+        } else {
+          collectionCount[item.collectionName] = 1
+        }
+      }
+
+      // Подсчет по рынку
+      if (item.is_market) {
+        marketCount.market++
+      } else {
+        marketCount.notMarket++
+      }
     })
 
     return {
       total: items.length,
       rarityCount,
       categoryCount,
+      collectionCount,
+      marketCount,
     }
   }, [])
 
@@ -161,6 +187,7 @@ export default function ItemsPage() {
         collectionName: item.collection.name,
         typeName: item.type.name,
         created_at: item.created_at,
+        is_market: item.is_market || false,
         // Добавляем ID для связанных сущностей
         type_id: item.type.id,
         rarity_id: item.rarity.id,
@@ -194,17 +221,20 @@ export default function ItemsPage() {
     const rarities = new Set<string>()
     const categories = new Set<string>()
     const types = new Set<string>()
+    const collections = new Set<string>()
 
     items.forEach((item) => {
       if (item.rarity) rarities.add(item.rarity)
       if (item.category) categories.add(item.category)
       if (item.typeName) types.add(item.typeName)
+        if (item.collectionName) collections.add(item.collectionName)
     })
 
     return {
       rarities: Array.from(rarities),
       categories: Array.from(categories),
       types: Array.from(types),
+      collections: Array.from(collections),
     }
   }, [items])
 
@@ -217,13 +247,19 @@ export default function ItemsPage() {
         item.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (item.weaponName && item.weaponName.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (item.rarity && item.rarity.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (item.typeName && item.typeName.toLowerCase().includes(searchTerm.toLowerCase()))
+        (item.typeName && item.typeName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (item.collectionName && item.collectionName.toLowerCase().includes(searchTerm.toLowerCase()))
 
       const matchesRarity = rarityFilter === "all" || item.rarity === rarityFilter
       const matchesCategory = categoryFilter === "all" || item.category === categoryFilter
       const matchesType = typeFilter === "all" || item.typeName === typeFilter
+      const matchesCollection = collectionFilter === "all" || item.collectionName === collectionFilter
+      const matchesMarket =
+        marketFilter === "all" ||
+        (marketFilter === "market" && item.is_market) ||
+        (marketFilter === "not_market" && !item.is_market)
 
-      return matchesSearch && matchesRarity && matchesCategory && matchesType
+      return matchesSearch && matchesRarity && matchesCategory && matchesType && matchesCollection && matchesMarket
     })
 
     // Сортировка
@@ -247,6 +283,14 @@ export default function ItemsPage() {
           valueA = a.typeName || ""
           valueB = b.typeName || ""
           break
+        case "collection":
+          valueA = a.collectionName || ""
+          valueB = b.collectionName || ""
+          break
+        case "market":
+          valueA = a.is_market ? "1" : "0"
+          valueB = b.is_market ? "1" : "0"
+          break
         case "date":
           valueA = a.created_at || ""
           valueB = b.created_at || ""
@@ -264,7 +308,7 @@ export default function ItemsPage() {
     })
 
     return result
-  }, [items, searchTerm, rarityFilter, categoryFilter, typeFilter, sortBy, sortOrder])
+  }, [items, searchTerm, rarityFilter, categoryFilter, typeFilter, collectionFilter, marketFilter, sortBy, sortOrder])
 
   // Пагинация
   const paginatedItems = useMemo(() => {
@@ -454,6 +498,24 @@ export default function ItemsPage() {
                 Oldest first
               </DropdownMenuCheckboxItem>
 
+              <DropdownMenuLabel className="mt-2">Market Status</DropdownMenuLabel>
+              <DropdownMenuSeparator className="bg-zinc-800" />
+              <DropdownMenuCheckboxItem checked={marketFilter === "all"} onCheckedChange={() => setMarketFilter("all")}>
+                All items
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={marketFilter === "market"}
+                onCheckedChange={() => setMarketFilter("market")}
+              >
+                On market
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={marketFilter === "not_market"}
+                onCheckedChange={() => setMarketFilter("not_market")}
+              >
+                Not on market
+              </DropdownMenuCheckboxItem>
+
               <DropdownMenuLabel className="mt-2">Rarity</DropdownMenuLabel>
               <DropdownMenuSeparator className="bg-zinc-800" />
               <DropdownMenuCheckboxItem checked={rarityFilter === "all"} onCheckedChange={() => setRarityFilter("all")}>
@@ -468,6 +530,24 @@ export default function ItemsPage() {
                   {rarity}
                 </DropdownMenuCheckboxItem>
               ))}
+
+              <DropdownMenuLabel className="mt-2">Market Status</DropdownMenuLabel>
+              <DropdownMenuSeparator className="bg-zinc-800" />
+              <DropdownMenuCheckboxItem checked={marketFilter === "all"} onCheckedChange={() => setMarketFilter("all")}>
+                All items
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={marketFilter === "market"}
+                onCheckedChange={() => setMarketFilter("market")}
+              >
+                On market
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={marketFilter === "not_market"}
+                onCheckedChange={() => setMarketFilter("not_market")}
+              >
+                Not on market
+              </DropdownMenuCheckboxItem>
 
               <DropdownMenuLabel className="mt-2">Type</DropdownMenuLabel>
               <DropdownMenuSeparator className="bg-zinc-800" />
@@ -493,18 +573,22 @@ export default function ItemsPage() {
       </div>
 
       {/* Item stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
         <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
           <h3 className="text-zinc-500 text-sm font-medium mb-2">Total Items</h3>
           <p className="text-2xl font-bold">{stats.total}</p>
         </div>
         <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
-          <h3 className="text-zinc-500 text-sm font-medium mb-2">Categories</h3>
-          <p className="text-2xl font-bold">{Object.keys(stats.categoryCount).length}</p>
+          <h3 className="text-zinc-500 text-sm font-medium mb-2">Collections</h3>
+          <p className="text-2xl font-bold">{Object.keys(stats.collectionCount).length}</p>
         </div>
         <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
-          <h3 className="text-zinc-500 text-sm font-medium mb-2">Rarities</h3>
-          <p className="text-2xl font-bold">{Object.keys(stats.rarityCount).length}</p>
+          <h3 className="text-zinc-500 text-sm font-medium mb-2">On Market</h3>
+          <p className="text-2xl font-bold text-green-400">{stats.marketCount.market}</p>
+        </div>
+        <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+          <h3 className="text-zinc-500 text-sm font-medium mb-2">Not on Market</h3>
+          <p className="text-2xl font-bold text-red-400">{stats.marketCount.notMarket}</p>
         </div>
       </div>
 
@@ -517,7 +601,12 @@ export default function ItemsPage() {
 
       {/* Item grid */}
       <div>
-        {searchTerm || rarityFilter !== "all" || categoryFilter !== "all" || typeFilter !== "all" ? (
+        {searchTerm ||
+        rarityFilter !== "all" ||
+        categoryFilter !== "all" ||
+        typeFilter !== "all" ||
+        collectionFilter !== "all" ||
+        marketFilter !== "all" ? (
           <p className="mb-4 text-zinc-400">Найдено результатов: {filteredAndSortedItems.length}</p>
         ) : null}
 
@@ -540,7 +629,12 @@ export default function ItemsPage() {
           ) : (
             // Сообщение, если ничего не найдено
             <div className="col-span-full text-center py-12 text-zinc-400">
-              {searchTerm || rarityFilter !== "all" || categoryFilter !== "all" || typeFilter !== "all"
+              {searchTerm ||
+              rarityFilter !== "all" ||
+              categoryFilter !== "all" ||
+              typeFilter !== "all" ||
+              collectionFilter !== "all" ||
+              marketFilter !== "all"
                 ? "Ничего не найдено по вашему запросу"
                 : "Предметы не найдены"}
             </div>
@@ -578,6 +672,7 @@ export default function ItemsPage() {
                 category_id: currentItem.category_id,
                 collection_id: currentItem.collection_id,
                 weapon_id: currentItem.weapon_id,
+                is_market: currentItem.is_market,
               }}
               onSuccess={handleFormSuccess}
               onCancel={() => setIsEditDialogOpen(false)}
