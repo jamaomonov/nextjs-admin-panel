@@ -3,7 +3,7 @@
  */
 
 // Базовый URL для API запр��сов
-export const API_BASE_URL = "http://127.0.1:8000"
+export const API_BASE_URL = "https://api.standoff.uz"
 
 // URL для API-эндпоинтов
 export const API_ENDPOINTS = {

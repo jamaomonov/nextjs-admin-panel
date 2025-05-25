@@ -14,11 +14,10 @@ import { useMobile } from "@/hooks/use-mobile"
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuCheckboxItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 
 // Обновленный интерфейс для соответствия структуре API
 interface ApiItem {
@@ -103,6 +102,8 @@ export default function ItemsPage() {
   const [marketFilter, setMarketFilter] = useState<string>("all")
   const [sortBy, setSortBy] = useState<string>("name")
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc")
+    const [filterSearchTerm, setFilterSearchTerm] = useState("")
+  const [filtersOpen, setFiltersOpen] = useState(false)
 
   // Функция для расчета статистики
   const calculateStats = useCallback((items: Item[]) => {
@@ -451,118 +452,200 @@ export default function ItemsPage() {
               onChange={(e) => handleSearch(e.target.value)}
             />
           </div>
-          <DropdownMenu>
+          <DropdownMenu open={filtersOpen} onOpenChange={setFiltersOpen}>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700">
                 <Filter size={16} className="mr-2" />
                 Filters
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="bg-zinc-900 border-zinc-800 w-56">
-              <DropdownMenuLabel>Sort by</DropdownMenuLabel>
-              <DropdownMenuSeparator className="bg-zinc-800" />
-              <DropdownMenuCheckboxItem
-                checked={sortBy === "name" && sortOrder === "asc"}
-                onCheckedChange={() => {
-                  setSortBy("name")
-                  setSortOrder("asc")
-                }}
-              >
-                Name (A-Z)
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuCheckboxItem
-                checked={sortBy === "name" && sortOrder === "desc"}
-                onCheckedChange={() => {
-                  setSortBy("name")
-                  setSortOrder("desc")
-                }}
-              >
-                Name (Z-A)
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuCheckboxItem
-                checked={sortBy === "date" && sortOrder === "desc"}
-                onCheckedChange={() => {
-                  setSortBy("date")
-                  setSortOrder("desc")
-                }}
-              >
-                Newest first
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuCheckboxItem
-                checked={sortBy === "date" && sortOrder === "asc"}
-                onCheckedChange={() => {
-                  setSortBy("date")
-                  setSortOrder("asc")
-                }}
-              >
-                Oldest first
-              </DropdownMenuCheckboxItem>
+            <DropdownMenuContent
+              className="bg-zinc-900 border-zinc-800 w-72 max-h-[70vh] overflow-y-auto"
+              align="end"
+              sideOffset={8}
+            >
+              <div className="sticky top-0 bg-zinc-900 z-10 pt-2 px-2">
+                <Input
+                  type="search"
+                  placeholder="Search filters..."
+                  className="mb-2 bg-zinc-800 border-zinc-700"
+                  value={filterSearchTerm}
+                  onChange={(e) => setFilterSearchTerm(e.target.value)}
+                />
+              </div>
 
-              <DropdownMenuLabel className="mt-2">Market Status</DropdownMenuLabel>
-              <DropdownMenuSeparator className="bg-zinc-800" />
-              <DropdownMenuCheckboxItem checked={marketFilter === "all"} onCheckedChange={() => setMarketFilter("all")}>
-                All items
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuCheckboxItem
-                checked={marketFilter === "market"}
-                onCheckedChange={() => setMarketFilter("market")}
-              >
-                On market
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuCheckboxItem
-                checked={marketFilter === "not_market"}
-                onCheckedChange={() => setMarketFilter("not_market")}
-              >
-                Not on market
-              </DropdownMenuCheckboxItem>
+              <Accordion type="multiple" className="w-full" defaultValue={["sort", "market"]}>
+                <AccordionItem value="sort" className="border-zinc-800">
+                  <AccordionTrigger className="py-2 px-2 hover:no-underline hover:bg-zinc-800">
+                    <span className="text-sm font-medium">Sort by</span>
+                  </AccordionTrigger>
+                  <AccordionContent className="pt-1 pb-2">
+                    <DropdownMenuCheckboxItem
+                      checked={sortBy === "name" && sortOrder === "asc"}
+                      onCheckedChange={() => {
+                        setSortBy("name")
+                        setSortOrder("asc")
+                      }}
+                    >
+                      Name (A-Z)
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={sortBy === "name" && sortOrder === "desc"}
+                      onCheckedChange={() => {
+                        setSortBy("name")
+                        setSortOrder("desc")
+                      }}
+                    >
+                      Name (Z-A)
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={sortBy === "date" && sortOrder === "desc"}
+                      onCheckedChange={() => {
+                        setSortBy("date")
+                        setSortOrder("desc")
+                      }}
+                    >
+                      Newest first
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={sortBy === "date" && sortOrder === "asc"}
+                      onCheckedChange={() => {
+                        setSortBy("date")
+                        setSortOrder("asc")
+                      }}
+                    >
+                      Oldest first
+                    </DropdownMenuCheckboxItem>
+                  </AccordionContent>
+                </AccordionItem>
 
-              <DropdownMenuLabel className="mt-2">Rarity</DropdownMenuLabel>
-              <DropdownMenuSeparator className="bg-zinc-800" />
-              <DropdownMenuCheckboxItem checked={rarityFilter === "all"} onCheckedChange={() => setRarityFilter("all")}>
-                All rarities
-              </DropdownMenuCheckboxItem>
-              {filters.rarities.map((rarity) => (
-                <DropdownMenuCheckboxItem
-                  key={rarity}
-                  checked={rarityFilter === rarity}
-                  onCheckedChange={() => setRarityFilter(rarity)}
+                <AccordionItem value="market" className="border-zinc-800">
+                  <AccordionTrigger className="py-2 px-2 hover:no-underline hover:bg-zinc-800">
+                    <span className="text-sm font-medium">Market Status</span>
+                  </AccordionTrigger>
+                  <AccordionContent className="pt-1 pb-2">
+                    <DropdownMenuCheckboxItem
+                      checked={marketFilter === "all"}
+                      onCheckedChange={() => setMarketFilter("all")}
+                    >
+                      All items
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={marketFilter === "market"}
+                      onCheckedChange={() => setMarketFilter("market")}
+                    >
+                      On market
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={marketFilter === "not_market"}
+                      onCheckedChange={() => setMarketFilter("not_market")}
+                    >
+                      Not on market
+                    </DropdownMenuCheckboxItem>
+                  </AccordionContent>
+                </AccordionItem>
+
+                <AccordionItem value="rarity" className="border-zinc-800">
+                  <AccordionTrigger className="py-2 px-2 hover:no-underline hover:bg-zinc-800">
+                    <span className="text-sm font-medium">Rarity</span>
+                  </AccordionTrigger>
+                  <AccordionContent className="pt-1 pb-2">
+                    <DropdownMenuCheckboxItem
+                      checked={rarityFilter === "all"}
+                      onCheckedChange={() => setRarityFilter("all")}
+                    >
+                      All rarities
+                    </DropdownMenuCheckboxItem>
+                    {filters.rarities
+                      .filter(
+                        (rarity) => !filterSearchTerm || rarity.toLowerCase().includes(filterSearchTerm.toLowerCase()),
+                      )
+                      .map((rarity) => (
+                        <DropdownMenuCheckboxItem
+                          key={rarity}
+                          checked={rarityFilter === rarity}
+                          onCheckedChange={() => setRarityFilter(rarity)}
+                        >
+                          {rarity}
+                        </DropdownMenuCheckboxItem>
+                      ))}
+                  </AccordionContent>
+                </AccordionItem>
+
+                <AccordionItem value="collection" className="border-zinc-800">
+                  <AccordionTrigger className="py-2 px-2 hover:no-underline hover:bg-zinc-800">
+                    <span className="text-sm font-medium">Collection</span>
+                  </AccordionTrigger>
+                  <AccordionContent className="pt-1 pb-2">
+                    <DropdownMenuCheckboxItem
+                      checked={collectionFilter === "all"}
+                      onCheckedChange={() => setCollectionFilter("all")}
+                    >
+                      All collections
+                    </DropdownMenuCheckboxItem>
+                    {filters.collections
+                      .filter(
+                        (collection) =>
+                          !filterSearchTerm || collection.toLowerCase().includes(filterSearchTerm.toLowerCase()),
+                      )
+                      .map((collection) => (
+                        <DropdownMenuCheckboxItem
+                          key={collection}
+                          checked={collectionFilter === collection}
+                          onCheckedChange={() => setCollectionFilter(collection)}
+                        >
+                          {collection}
+                        </DropdownMenuCheckboxItem>
+                      ))}
+                  </AccordionContent>
+                </AccordionItem>
+
+                <AccordionItem value="type" className="border-zinc-800">
+                  <AccordionTrigger className="py-2 px-2 hover:no-underline hover:bg-zinc-800">
+                    <span className="text-sm font-medium">Type</span>
+                  </AccordionTrigger>
+                  <AccordionContent className="pt-1 pb-2">
+                    <DropdownMenuCheckboxItem
+                      checked={typeFilter === "all"}
+                      onCheckedChange={() => setTypeFilter("all")}
+                    >
+                      All types
+                    </DropdownMenuCheckboxItem>
+                    {filters.types
+                      .filter(
+                        (type) => !filterSearchTerm || type.toLowerCase().includes(filterSearchTerm.toLowerCase()),
+                      )
+                      .map((type) => (
+                        <DropdownMenuCheckboxItem
+                          key={type}
+                          checked={typeFilter === type}
+                          onCheckedChange={() => setTypeFilter(type)}
+                        >
+                          {type}
+                        </DropdownMenuCheckboxItem>
+                      ))}
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+
+              <div className="sticky bottom-0 bg-zinc-900 p-2 border-t border-zinc-800">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full bg-zinc-800 border-zinc-700 hover:bg-zinc-700"
+                  onClick={() => {
+                    setRarityFilter("all")
+                    setCategoryFilter("all")
+                    setTypeFilter("all")
+                    setCollectionFilter("all")
+                    setMarketFilter("all")
+                    setSortBy("name")
+                    setSortOrder("asc")
+                  }}
                 >
-                  {rarity}
-                </DropdownMenuCheckboxItem>
-              ))}
-
-              <DropdownMenuLabel className="mt-2">Market Status</DropdownMenuLabel>
-              <DropdownMenuSeparator className="bg-zinc-800" />
-              <DropdownMenuCheckboxItem checked={marketFilter === "all"} onCheckedChange={() => setMarketFilter("all")}>
-                All items
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuCheckboxItem
-                checked={marketFilter === "market"}
-                onCheckedChange={() => setMarketFilter("market")}
-              >
-                On market
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuCheckboxItem
-                checked={marketFilter === "not_market"}
-                onCheckedChange={() => setMarketFilter("not_market")}
-              >
-                Not on market
-              </DropdownMenuCheckboxItem>
-
-              <DropdownMenuLabel className="mt-2">Type</DropdownMenuLabel>
-              <DropdownMenuSeparator className="bg-zinc-800" />
-              <DropdownMenuCheckboxItem checked={typeFilter === "all"} onCheckedChange={() => setTypeFilter("all")}>
-                All types
-              </DropdownMenuCheckboxItem>
-              {filters.types.map((type) => (
-                <DropdownMenuCheckboxItem
-                  key={type}
-                  checked={typeFilter === type}
-                  onCheckedChange={() => setTypeFilter(type)}
-                >
-                  {type}
-                </DropdownMenuCheckboxItem>
-              ))}
+                  Reset All Filters
+                </Button>
+              </div>
             </DropdownMenuContent>
           </DropdownMenu>
           <Button className="bg-zinc-800 hover:bg-zinc-700" onClick={handleAddItem}>
