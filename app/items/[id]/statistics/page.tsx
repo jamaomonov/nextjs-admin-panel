@@ -95,7 +95,7 @@ export default function ItemStatistics({ params }: { params: { id: string } }) {
   const [zoomDomain, setZoomDomain] = useState<{ x: [number, number]; y: [number, number] } | null>(null)
   const [longHoverTimeout, setLongHoverTimeout] = useState<NodeJS.Timeout | null>(null)
   const [longHoverInfo, setLongHoverInfo] = useState<{ x: number; y: number; data: PriceData | null } | null>(null)
-  const [dataPointLimit, setDataPointLimit] = useState(150) // Increased limit for better visualization
+  const [dataPointLimit, setDataPointLimit] = useState(1000000) // Increased limit for better visualization
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [showInfoDialog, setShowInfoDialog] = useState(false)
   const [retryCount, setRetryCount] = useState(0)
@@ -105,9 +105,10 @@ export default function ItemStatistics({ params }: { params: { id: string } }) {
   const fetchItemStats = useCallback(
     async (showToast = true) => {
       try {
-        if (!isRefreshing) setIsLoading(true)
+        setIsLoading(true)
         setError(null)
         setShowNoDataMessage(false)
+        setRetryCount(0) // сбрасываем счетчик попыток
 
         // Create an AbortController for the fetch request
         const controller = new AbortController()
@@ -271,20 +272,12 @@ export default function ItemStatistics({ params }: { params: { id: string } }) {
         setPriceData(mockData.data)
         filterDataByPeriod(mockData.data, selectedPeriod)
         setStats(mockData.stats)
-
-        // If we've tried less than 3 times, retry after a delay
-        if (retryCount < 2) {
-          setRetryCount((prev) => prev + 1)
-          setTimeout(() => {
-            fetchItemStats(false)
-          }, 3000) // Retry after 3 seconds
-        }
       } finally {
         setIsLoading(false)
         setIsRefreshing(false)
       }
     },
-    [isRefreshing, itemName, retryCount, selectedPeriod, toast],
+    [itemName, selectedPeriod, toast], // убираем retryCount и isRefreshing из зависимостей
   )
 
   // Function to optimize data for display
@@ -345,7 +338,8 @@ export default function ItemStatistics({ params }: { params: { id: string } }) {
         case "ALL":
           // No filtering needed
           setFilteredData(data)
-          setDisplayData(optimizeDataForDisplay(data))
+          setDisplayData(data)
+          // setDisplayData(optimizeDataForDisplay(data))
           return
       }
 
@@ -370,10 +364,11 @@ export default function ItemStatistics({ params }: { params: { id: string } }) {
     [optimizeDataForDisplay],
   )
 
-  // Initial data fetch
+  // Initial data fetch (только один раз при монтировании)
   useEffect(() => {
     fetchItemStats(false)
-  }, [fetchItemStats])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Update filtered data when period changes
   useEffect(() => {
@@ -405,7 +400,7 @@ export default function ItemStatistics({ params }: { params: { id: string } }) {
 
   const handleRefresh = () => {
     setIsRefreshing(true)
-    setRetryCount(0) // Reset retry count
+    setRetryCount(0)
     fetchItemStats()
   }
 

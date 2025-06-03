@@ -2,7 +2,7 @@
 
 import { DEFAULT_ITEM_IMAGE, IMAGE_BASE_URL } from "@/lib/config"
 import Image from "next/image"
-import { Edit, Trash2, MoreVertical, BarChart3 } from "lucide-react"
+import { Edit, Trash2, MoreVertical, BarChart3, ShoppingCart, Store } from "lucide-react"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -24,6 +24,7 @@ interface Item {
   category_id?: number
   collection_id?: number
   weapon_id?: number
+  is_market?: boolean
 }
 
 interface ItemCardProps {
@@ -45,15 +46,15 @@ export default function ItemCard({ item, onEdit, onDelete }: ItemCardProps) {
       case "common":
         return "bg-gradient-to-b from-gray-300 to-gray-500"
       case "uncommon":
-        return "bg-gradient-to-b from-blue-300 to-blue-500"
+        return "bg-[#378fff]"
       case "rare":
-        return "bg-gradient-to-b from-blue-400 to-blue-600"
+        return "bg-[#0043ff]"
       case "epic":
-        return "bg-gradient-to-b from-purple-400 to-purple-600"
+        return "bg-[#941dff]"
       case "legendary":
-        return "bg-gradient-to-b from-pink-400 to-pink-600"
+        return "bg-[#ff2586]"
       case "arcane":
-        return "bg-gradient-to-b from-red-400 to-red-600"
+        return "bg-[#ff0000]"
       case "nameless":
         return "bg-gradient-to-b from-yellow-500 to-amber-700"
       default:
@@ -79,7 +80,7 @@ export default function ItemCard({ item, onEdit, onDelete }: ItemCardProps) {
       case "legendary":
         return "border-pink-400 bg-pink-300 text-pink-900"
       case "arcane":
-        return "border-red-400 bg-red-300 text-red-900"
+        return "border-red-600 bg-red-500 text-red-950"
       case "nameless":
         return "border-yellow-600 bg-yellow-500 text-yellow-900"
       default:
@@ -128,6 +129,21 @@ export default function ItemCard({ item, onEdit, onDelete }: ItemCardProps) {
           loading="lazy" // Добавляем ленивую загрузку для оптимизации
         />
         <div className="absolute inset-0 bg-gradient-to-t from-zinc-900/80 to-transparent z-20"></div>
+        {/* Отображение ID в углу изображения */}
+        <div className="absolute top-2 left-2 z-30">
+          <Badge variant="outline" className="bg-zinc-900/80 text-zinc-300 border-zinc-700 text-xs">
+            ID: {item.id}
+          </Badge>
+        </div>
+        {/* Отображение статуса рынка в углу изображения */}
+        {item.is_market && (
+          <div className="absolute top-2 right-2 z-30">
+            <Badge variant="outline" className="bg-green-900/80 text-green-300 border-green-700 text-xs">
+              <Store size={12} className="mr-1" />
+              Market
+            </Badge>
+          </div>
+        )}
       </div>
       <CardContent className="p-4 flex-grow">
         <div className="flex justify-between items-start mb-2">
@@ -171,6 +187,13 @@ export default function ItemCard({ item, onEdit, onDelete }: ItemCardProps) {
           {item.typeName && (
             <Badge variant="outline" className="bg-zinc-800 text-zinc-300 border-zinc-700">
               {item.typeName}
+            </Badge>
+          )}
+          {/* Добавляем бейдж для статуса рынка */}
+          {item.is_market && (
+            <Badge variant="outline" className="bg-green-800 text-green-300 border-green-700">
+              <ShoppingCart size={12} className="mr-1" />
+              На рынке
             </Badge>
           )}
         </div>

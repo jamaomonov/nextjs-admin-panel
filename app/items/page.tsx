@@ -14,11 +14,10 @@ import { useMobile } from "@/hooks/use-mobile"
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuCheckboxItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 
 // Обновленный интерфейс для соответствия структуре API
 interface ApiItem {
@@ -47,6 +46,7 @@ interface ApiItem {
     name: string
   }
   created_at: string
+  is_market?: boolean
 }
 
 // Интерфейс для нашего компонента ItemCard
@@ -60,6 +60,7 @@ interface Item {
   collectionName?: string
   typeName?: string
   created_at?: string
+  is_market?: boolean
   // Добавляем ID для связанных сущностей для редактирования
   type_id: number
   rarity_id: number
@@ -80,6 +81,8 @@ export default function ItemsPage() {
     total: 0,
     rarityCount: {} as Record<string, number>,
     categoryCount: {} as Record<string, number>,
+    collectionCount: {} as Record<string, number>,
+    marketCount: { market: 0, notMarket: 0 },
   })
   const [searchTerm, setSearchTerm] = useState("")
   const isMobile = useMobile()
@@ -95,13 +98,19 @@ export default function ItemsPage() {
   const [rarityFilter, setRarityFilter] = useState<string>("all")
   const [categoryFilter, setCategoryFilter] = useState<string>("all")
   const [typeFilter, setTypeFilter] = useState<string>("all")
+  const [collectionFilter, setCollectionFilter] = useState<string>("all")
+  const [marketFilter, setMarketFilter] = useState<string>("all")
   const [sortBy, setSortBy] = useState<string>("name")
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc")
+    const [filterSearchTerm, setFilterSearchTerm] = useState("")
+  const [filtersOpen, setFiltersOpen] = useState(false)
 
   // Функция для расчета статистики
   const calculateStats = useCallback((items: Item[]) => {
     const rarityCount: Record<string, number> = {}
     const categoryCount: Record<string, number> = {}
+    const collectionCount: Record<string, number> = {}
+    const marketCount = { market: 0, notMarket: 0 }
 
     items.forEach((item) => {
       // Подсчет по редкости
@@ -119,12 +128,30 @@ export default function ItemsPage() {
       } else {
         categoryCount[item.category] = 1
       }
+
+      // Подсчет по коллекции
+      if (item.collectionName) {
+        if (collectionCount[item.collectionName]) {
+          collectionCount[item.collectionName]++
+        } else {
+          collectionCount[item.collectionName] = 1
+        }
+      }
+
+      // Подсчет по рынку
+      if (item.is_market) {
+        marketCount.market++
+      } else {
+        marketCount.notMarket++
+      }
     })
 
     return {
       total: items.length,
       rarityCount,
       categoryCount,
+      collectionCount,
+      marketCount,
     }
   }, [])
 
@@ -161,6 +188,7 @@ export default function ItemsPage() {
         collectionName: item.collection.name,
         typeName: item.type.name,
         created_at: item.created_at,
+        is_market: item.is_market || false,
         // Добавляем ID для связанных сущностей
         type_id: item.type.id,
         rarity_id: item.rarity.id,
@@ -194,17 +222,20 @@ export default function ItemsPage() {
     const rarities = new Set<string>()
     const categories = new Set<string>()
     const types = new Set<string>()
+    const collections = new Set<string>()
 
     items.forEach((item) => {
       if (item.rarity) rarities.add(item.rarity)
       if (item.category) categories.add(item.category)
       if (item.typeName) types.add(item.typeName)
+        if (item.collectionName) collections.add(item.collectionName)
     })
 
     return {
       rarities: Array.from(rarities),
       categories: Array.from(categories),
       types: Array.from(types),
+      collections: Array.from(collections),
     }
   }, [items])
 
@@ -217,13 +248,19 @@ export default function ItemsPage() {
         item.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (item.weaponName && item.weaponName.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (item.rarity && item.rarity.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (item.typeName && item.typeName.toLowerCase().includes(searchTerm.toLowerCase()))
+        (item.typeName && item.typeName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (item.collectionName && item.collectionName.toLowerCase().includes(searchTerm.toLowerCase()))
 
       const matchesRarity = rarityFilter === "all" || item.rarity === rarityFilter
       const matchesCategory = categoryFilter === "all" || item.category === categoryFilter
       const matchesType = typeFilter === "all" || item.typeName === typeFilter
+      const matchesCollection = collectionFilter === "all" || item.collectionName === collectionFilter
+      const matchesMarket =
+        marketFilter === "all" ||
+        (marketFilter === "market" && item.is_market) ||
+        (marketFilter === "not_market" && !item.is_market)
 
-      return matchesSearch && matchesRarity && matchesCategory && matchesType
+      return matchesSearch && matchesRarity && matchesCategory && matchesType && matchesCollection && matchesMarket
     })
 
     // Сортировка
@@ -247,6 +284,14 @@ export default function ItemsPage() {
           valueA = a.typeName || ""
           valueB = b.typeName || ""
           break
+        case "collection":
+          valueA = a.collectionName || ""
+          valueB = b.collectionName || ""
+          break
+        case "market":
+          valueA = a.is_market ? "1" : "0"
+          valueB = b.is_market ? "1" : "0"
+          break
         case "date":
           valueA = a.created_at || ""
           valueB = b.created_at || ""
@@ -264,7 +309,7 @@ export default function ItemsPage() {
     })
 
     return result
-  }, [items, searchTerm, rarityFilter, categoryFilter, typeFilter, sortBy, sortOrder])
+  }, [items, searchTerm, rarityFilter, categoryFilter, typeFilter, collectionFilter, marketFilter, sortBy, sortOrder])
 
   // Пагинация
   const paginatedItems = useMemo(() => {
@@ -407,82 +452,200 @@ export default function ItemsPage() {
               onChange={(e) => handleSearch(e.target.value)}
             />
           </div>
-          <DropdownMenu>
+          <DropdownMenu open={filtersOpen} onOpenChange={setFiltersOpen}>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700">
                 <Filter size={16} className="mr-2" />
                 Filters
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="bg-zinc-900 border-zinc-800 w-56">
-              <DropdownMenuLabel>Sort by</DropdownMenuLabel>
-              <DropdownMenuSeparator className="bg-zinc-800" />
-              <DropdownMenuCheckboxItem
-                checked={sortBy === "name" && sortOrder === "asc"}
-                onCheckedChange={() => {
-                  setSortBy("name")
-                  setSortOrder("asc")
-                }}
-              >
-                Name (A-Z)
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuCheckboxItem
-                checked={sortBy === "name" && sortOrder === "desc"}
-                onCheckedChange={() => {
-                  setSortBy("name")
-                  setSortOrder("desc")
-                }}
-              >
-                Name (Z-A)
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuCheckboxItem
-                checked={sortBy === "date" && sortOrder === "desc"}
-                onCheckedChange={() => {
-                  setSortBy("date")
-                  setSortOrder("desc")
-                }}
-              >
-                Newest first
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuCheckboxItem
-                checked={sortBy === "date" && sortOrder === "asc"}
-                onCheckedChange={() => {
-                  setSortBy("date")
-                  setSortOrder("asc")
-                }}
-              >
-                Oldest first
-              </DropdownMenuCheckboxItem>
+            <DropdownMenuContent
+              className="bg-zinc-900 border-zinc-800 w-72 max-h-[70vh] overflow-y-auto"
+              align="end"
+              sideOffset={8}
+            >
+              <div className="sticky top-0 bg-zinc-900 z-10 pt-2 px-2">
+                <Input
+                  type="search"
+                  placeholder="Search filters..."
+                  className="mb-2 bg-zinc-800 border-zinc-700"
+                  value={filterSearchTerm}
+                  onChange={(e) => setFilterSearchTerm(e.target.value)}
+                />
+              </div>
 
-              <DropdownMenuLabel className="mt-2">Rarity</DropdownMenuLabel>
-              <DropdownMenuSeparator className="bg-zinc-800" />
-              <DropdownMenuCheckboxItem checked={rarityFilter === "all"} onCheckedChange={() => setRarityFilter("all")}>
-                All rarities
-              </DropdownMenuCheckboxItem>
-              {filters.rarities.map((rarity) => (
-                <DropdownMenuCheckboxItem
-                  key={rarity}
-                  checked={rarityFilter === rarity}
-                  onCheckedChange={() => setRarityFilter(rarity)}
-                >
-                  {rarity}
-                </DropdownMenuCheckboxItem>
-              ))}
+              <Accordion type="multiple" className="w-full" defaultValue={["sort", "market"]}>
+                <AccordionItem value="sort" className="border-zinc-800">
+                  <AccordionTrigger className="py-2 px-2 hover:no-underline hover:bg-zinc-800">
+                    <span className="text-sm font-medium">Sort by</span>
+                  </AccordionTrigger>
+                  <AccordionContent className="pt-1 pb-2">
+                    <DropdownMenuCheckboxItem
+                      checked={sortBy === "name" && sortOrder === "asc"}
+                      onCheckedChange={() => {
+                        setSortBy("name")
+                        setSortOrder("asc")
+                      }}
+                    >
+                      Name (A-Z)
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={sortBy === "name" && sortOrder === "desc"}
+                      onCheckedChange={() => {
+                        setSortBy("name")
+                        setSortOrder("desc")
+                      }}
+                    >
+                      Name (Z-A)
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={sortBy === "date" && sortOrder === "desc"}
+                      onCheckedChange={() => {
+                        setSortBy("date")
+                        setSortOrder("desc")
+                      }}
+                    >
+                      Newest first
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={sortBy === "date" && sortOrder === "asc"}
+                      onCheckedChange={() => {
+                        setSortBy("date")
+                        setSortOrder("asc")
+                      }}
+                    >
+                      Oldest first
+                    </DropdownMenuCheckboxItem>
+                  </AccordionContent>
+                </AccordionItem>
 
-              <DropdownMenuLabel className="mt-2">Type</DropdownMenuLabel>
-              <DropdownMenuSeparator className="bg-zinc-800" />
-              <DropdownMenuCheckboxItem checked={typeFilter === "all"} onCheckedChange={() => setTypeFilter("all")}>
-                All types
-              </DropdownMenuCheckboxItem>
-              {filters.types.map((type) => (
-                <DropdownMenuCheckboxItem
-                  key={type}
-                  checked={typeFilter === type}
-                  onCheckedChange={() => setTypeFilter(type)}
+                <AccordionItem value="market" className="border-zinc-800">
+                  <AccordionTrigger className="py-2 px-2 hover:no-underline hover:bg-zinc-800">
+                    <span className="text-sm font-medium">Market Status</span>
+                  </AccordionTrigger>
+                  <AccordionContent className="pt-1 pb-2">
+                    <DropdownMenuCheckboxItem
+                      checked={marketFilter === "all"}
+                      onCheckedChange={() => setMarketFilter("all")}
+                    >
+                      All items
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={marketFilter === "market"}
+                      onCheckedChange={() => setMarketFilter("market")}
+                    >
+                      On market
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={marketFilter === "not_market"}
+                      onCheckedChange={() => setMarketFilter("not_market")}
+                    >
+                      Not on market
+                    </DropdownMenuCheckboxItem>
+                  </AccordionContent>
+                </AccordionItem>
+
+                <AccordionItem value="rarity" className="border-zinc-800">
+                  <AccordionTrigger className="py-2 px-2 hover:no-underline hover:bg-zinc-800">
+                    <span className="text-sm font-medium">Rarity</span>
+                  </AccordionTrigger>
+                  <AccordionContent className="pt-1 pb-2">
+                    <DropdownMenuCheckboxItem
+                      checked={rarityFilter === "all"}
+                      onCheckedChange={() => setRarityFilter("all")}
+                    >
+                      All rarities
+                    </DropdownMenuCheckboxItem>
+                    {filters.rarities
+                      .filter(
+                        (rarity) => !filterSearchTerm || rarity.toLowerCase().includes(filterSearchTerm.toLowerCase()),
+                      )
+                      .map((rarity) => (
+                        <DropdownMenuCheckboxItem
+                          key={rarity}
+                          checked={rarityFilter === rarity}
+                          onCheckedChange={() => setRarityFilter(rarity)}
+                        >
+                          {rarity}
+                        </DropdownMenuCheckboxItem>
+                      ))}
+                  </AccordionContent>
+                </AccordionItem>
+
+                <AccordionItem value="collection" className="border-zinc-800">
+                  <AccordionTrigger className="py-2 px-2 hover:no-underline hover:bg-zinc-800">
+                    <span className="text-sm font-medium">Collection</span>
+                  </AccordionTrigger>
+                  <AccordionContent className="pt-1 pb-2">
+                    <DropdownMenuCheckboxItem
+                      checked={collectionFilter === "all"}
+                      onCheckedChange={() => setCollectionFilter("all")}
+                    >
+                      All collections
+                    </DropdownMenuCheckboxItem>
+                    {filters.collections
+                      .filter(
+                        (collection) =>
+                          !filterSearchTerm || collection.toLowerCase().includes(filterSearchTerm.toLowerCase()),
+                      )
+                      .map((collection) => (
+                        <DropdownMenuCheckboxItem
+                          key={collection}
+                          checked={collectionFilter === collection}
+                          onCheckedChange={() => setCollectionFilter(collection)}
+                        >
+                          {collection}
+                        </DropdownMenuCheckboxItem>
+                      ))}
+                  </AccordionContent>
+                </AccordionItem>
+
+                <AccordionItem value="type" className="border-zinc-800">
+                  <AccordionTrigger className="py-2 px-2 hover:no-underline hover:bg-zinc-800">
+                    <span className="text-sm font-medium">Type</span>
+                  </AccordionTrigger>
+                  <AccordionContent className="pt-1 pb-2">
+                    <DropdownMenuCheckboxItem
+                      checked={typeFilter === "all"}
+                      onCheckedChange={() => setTypeFilter("all")}
+                    >
+                      All types
+                    </DropdownMenuCheckboxItem>
+                    {filters.types
+                      .filter(
+                        (type) => !filterSearchTerm || type.toLowerCase().includes(filterSearchTerm.toLowerCase()),
+                      )
+                      .map((type) => (
+                        <DropdownMenuCheckboxItem
+                          key={type}
+                          checked={typeFilter === type}
+                          onCheckedChange={() => setTypeFilter(type)}
+                        >
+                          {type}
+                        </DropdownMenuCheckboxItem>
+                      ))}
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+
+              <div className="sticky bottom-0 bg-zinc-900 p-2 border-t border-zinc-800">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full bg-zinc-800 border-zinc-700 hover:bg-zinc-700"
+                  onClick={() => {
+                    setRarityFilter("all")
+                    setCategoryFilter("all")
+                    setTypeFilter("all")
+                    setCollectionFilter("all")
+                    setMarketFilter("all")
+                    setSortBy("name")
+                    setSortOrder("asc")
+                  }}
                 >
-                  {type}
-                </DropdownMenuCheckboxItem>
-              ))}
+                  Reset All Filters
+                </Button>
+              </div>
             </DropdownMenuContent>
           </DropdownMenu>
           <Button className="bg-zinc-800 hover:bg-zinc-700" onClick={handleAddItem}>
@@ -493,18 +656,22 @@ export default function ItemsPage() {
       </div>
 
       {/* Item stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
         <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
           <h3 className="text-zinc-500 text-sm font-medium mb-2">Total Items</h3>
           <p className="text-2xl font-bold">{stats.total}</p>
         </div>
         <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
-          <h3 className="text-zinc-500 text-sm font-medium mb-2">Categories</h3>
-          <p className="text-2xl font-bold">{Object.keys(stats.categoryCount).length}</p>
+          <h3 className="text-zinc-500 text-sm font-medium mb-2">Collections</h3>
+          <p className="text-2xl font-bold">{Object.keys(stats.collectionCount).length}</p>
         </div>
         <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
-          <h3 className="text-zinc-500 text-sm font-medium mb-2">Rarities</h3>
-          <p className="text-2xl font-bold">{Object.keys(stats.rarityCount).length}</p>
+          <h3 className="text-zinc-500 text-sm font-medium mb-2">On Market</h3>
+          <p className="text-2xl font-bold text-green-400">{stats.marketCount.market}</p>
+        </div>
+        <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+          <h3 className="text-zinc-500 text-sm font-medium mb-2">Not on Market</h3>
+          <p className="text-2xl font-bold text-red-400">{stats.marketCount.notMarket}</p>
         </div>
       </div>
 
@@ -517,7 +684,12 @@ export default function ItemsPage() {
 
       {/* Item grid */}
       <div>
-        {searchTerm || rarityFilter !== "all" || categoryFilter !== "all" || typeFilter !== "all" ? (
+        {searchTerm ||
+        rarityFilter !== "all" ||
+        categoryFilter !== "all" ||
+        typeFilter !== "all" ||
+        collectionFilter !== "all" ||
+        marketFilter !== "all" ? (
           <p className="mb-4 text-zinc-400">Найдено результатов: {filteredAndSortedItems.length}</p>
         ) : null}
 
@@ -540,7 +712,12 @@ export default function ItemsPage() {
           ) : (
             // Сообщение, если ничего не найдено
             <div className="col-span-full text-center py-12 text-zinc-400">
-              {searchTerm || rarityFilter !== "all" || categoryFilter !== "all" || typeFilter !== "all"
+              {searchTerm ||
+              rarityFilter !== "all" ||
+              categoryFilter !== "all" ||
+              typeFilter !== "all" ||
+              collectionFilter !== "all" ||
+              marketFilter !== "all"
                 ? "Ничего не найдено по вашему запросу"
                 : "Предметы не найдены"}
             </div>
@@ -578,6 +755,7 @@ export default function ItemsPage() {
                 category_id: currentItem.category_id,
                 collection_id: currentItem.collection_id,
                 weapon_id: currentItem.weapon_id,
+                is_market: currentItem.is_market,
               }}
               onSuccess={handleFormSuccess}
               onCancel={() => setIsEditDialogOpen(false)}
