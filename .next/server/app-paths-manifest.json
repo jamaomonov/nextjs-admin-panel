@@ -1,0 +1,9 @@
+{
+  "/api/items/route": "app/api/items/route.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/items/page": "app/items/page.js",
+  "/login/page": "app/login/page.js",
+  "/dashboard/page": "app/dashboard/page.js",
+  "/auth/callback/page": "app/auth/callback/page.js",
+  "/items/[id]/statistics/page": "app/items/[id]/statistics/page.js"
+}

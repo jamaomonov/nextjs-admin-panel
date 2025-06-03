@@ -26,7 +26,6 @@ export default function AuthCallbackPage() {
 
       try {
         const code = searchParams?.get("code")
-        console.log("Callback code:", code)
 
         if (!code) {
           errorRef.current = "Код авторизации не найден"

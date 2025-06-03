@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "@/components/ui/use-toast"
 import { Loader2, AlertCircle } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -24,6 +25,7 @@ interface ItemFormProps {
     category_id: number
     collection_id: number
     weapon_id: number
+    is_market?: boolean
   }
   onSuccess: () => void
   onCancel: () => void
@@ -48,6 +50,7 @@ export default function ItemForm({ initialData, onSuccess, onCancel }: ItemFormP
     category_id: initialData?.category_id || "",
     collection_id: initialData?.collection_id || "",
     weapon_id: initialData?.weapon_id || "",
+    is_market: initialData?.is_market || false,
   })
 
   const [types, setTypes] = useState<SelectOption[]>([])
@@ -96,7 +99,7 @@ export default function ItemForm({ initialData, onSuccess, onCancel }: ItemFormP
     fetchOptions()
   }, [])
 
-  const handleChange = (field: string, value: string | number) => {
+  const handleChange = (field: string, value: string | number | boolean) => {
     setFormData((prev) => ({
       ...prev,
       [field]: value,
@@ -128,6 +131,7 @@ export default function ItemForm({ initialData, onSuccess, onCancel }: ItemFormP
         collection_id: Number(formData.collection_id),
         category_id: formData.category_id ? Number(formData.category_id) : null,
         weapon_id: formData.weapon_id ? Number(formData.weapon_id) : null,
+        is_market: Boolean(formData.is_market),
       }
 
       const cleanedData = Object.fromEntries(
@@ -221,6 +225,21 @@ export default function ItemForm({ initialData, onSuccess, onCancel }: ItemFormP
           onChange={(path) => handleChange("photo", path)}
           onError={(errorMessage) => setError(errorMessage)}
         />
+      </div>
+
+      <div className="flex items-center space-x-2">
+        <Checkbox
+          id="is_market"
+          checked={formData.is_market}
+          onCheckedChange={(checked) => handleChange("is_market", checked)}
+          className="border-zinc-700 data-[state=checked]:bg-zinc-700 data-[state=checked]:border-zinc-600"
+        />
+        <Label
+          htmlFor="is_market"
+          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+        >
+          Доступен на рынке
+        </Label>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

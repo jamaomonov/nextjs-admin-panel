@@ -47,7 +47,7 @@ export const hasAccess = (role?: UserRole): boolean => {
     return false
   }
 
-  // Пров��ряем, входит ли роль пользователя в список разрешенных ролей
+  // Проверяем, входит ли роль пользователя в список разрешенных ролей
   return AUTH_CONFIG.allowedRoles.includes(role)
 }
 
@@ -90,13 +90,11 @@ export const getCurrentUser = async (): Promise<User | null> => {
 export const exchangeCodeForToken = async (code: string): Promise<{ user: User; token: string } | null> => {
   // Предотвращаем повторные запросы с тем же кодом
   if (isExchangingCode) {
-    console.log("Code exchange already in progress, skipping duplicate request")
     return null
   }
 
   try {
     isExchangingCode = true
-    console.log("Exchanging code for token...")
 
     const response = await fetch(`${API_ENDPOINTS.googleCallback}?code=${code}`, {
       method: "GET",
@@ -127,8 +125,7 @@ export const exchangeCodeForToken = async (code: string): Promise<{ user: User; 
   }
 }
 
-// Добавление заголовка авторизации к запросам
 export const authHeader = () => {
   const token = getToken()
   return token ? { Authorization: `Bearer ${token}` } : {}
-}
+};
